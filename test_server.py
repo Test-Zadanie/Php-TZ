@@ -84,6 +84,33 @@ def handle_start_command(chat_id, user_name):
         logger.error(f"Error handling start command: {e}")
         return False
 
+def handle_stop_command(chat_id, user_name):
+    """Handle /stop command"""
+    try:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute("SELECT * FROM users WHERE telegram_id = ?", (str(chat_id),))
+        user = cursor.fetchone()
+        
+        if user:
+            # User exists, unsubscribe
+            cursor.execute("UPDATE users SET subscribed = 0 WHERE telegram_id = ?", (str(chat_id),))
+            message = f"You have been unsubscribed from notifications, {user[1]}. Send /start to resubscribe."
+        else:
+            # User doesn't exist
+            message = "You are not registered yet. Send /start to register first."
+        
+        conn.commit()
+        conn.close()
+        
+        send_telegram_message(chat_id, message)
+        return True
+    except Exception as e:
+        logger.error(f"Error handling stop command: {e}")
+        return False
+
 def broadcast_notification(message):
     """Send notification to all subscribed users"""
     try:
@@ -124,8 +151,10 @@ class WebhookHandler(BaseHTTPRequestHandler):
                     
                     if text == '/start':
                         handle_start_command(chat_id, full_name)
+                    elif text == '/stop':
+                        handle_stop_command(chat_id, full_name)
                     else:
-                        send_telegram_message(chat_id, "Unknown command. Use /start to register.")
+                        send_telegram_message(chat_id, "Unknown command. Use /start to register or /stop to unsubscribe.")
                 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -176,6 +205,9 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 logger.error(f"Error processing tasks: {e}")
                 self.send_response(500)
                 self.end_headers()
+        elif self.path == '/api/v1/notify-tasks':
+            # Handle NotifyTasks functionality
+            self.handle_notify_tasks()
         else:
             self.send_response(404)
             self.end_headers()
@@ -191,8 +223,18 @@ class WebhookHandler(BaseHTTPRequestHandler):
             <body>
                 <h1>Telegram Notifications Service</h1>
                 <p>Service is running!</p>
-                <p>Webhook URL: <code>/api/telegram/webhook</code></p>
-                <p>Tasks API: <code>/api/v1/tasks</code></p>
+                <h2>Available Endpoints:</h2>
+                <ul>
+                    <li><code>POST /api/telegram/webhook</code> - Telegram webhook</li>
+                    <li><code>POST /api/v1/tasks</code> - Send custom tasks</li>
+                    <li><code>POST /api/v1/notify-tasks</code> - Trigger NotifyTasks</li>
+                </ul>
+                <h2>Bot Commands:</h2>
+                <ul>
+                    <li><code>/start</code> - Register for notifications</li>
+                    <li><code>/stop</code> - Unsubscribe from notifications</li>
+                </ul>
+                <p><strong>Bot:</strong> @TestNewNewTest_bot</p>
             </body>
             </html>
             """
@@ -200,6 +242,43 @@ class WebhookHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+    
+    def handle_notify_tasks(self):
+        """Handle NotifyTasks API endpoint"""
+        try:
+            from notify_tasks import notify_tasks
+            
+            # Run the notify_tasks function
+            success = notify_tasks()
+            
+            if success:
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {
+                    'status': 'success',
+                    'message': 'NotifyTasks executed successfully'
+                }
+                self.wfile.write(json.dumps(response).encode())
+            else:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {
+                    'status': 'error',
+                    'message': 'NotifyTasks execution failed'
+                }
+                self.wfile.write(json.dumps(response).encode())
+        except Exception as e:
+            logger.error(f"Error in handle_notify_tasks: {e}")
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            response = {
+                'status': 'error',
+                'message': f'Error: {str(e)}'
+            }
+            self.wfile.write(json.dumps(response).encode())
 
 def run_server():
     init_db()

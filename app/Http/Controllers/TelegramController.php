@@ -50,8 +50,11 @@ class TelegramController extends Controller
             case '/start':
                 $this->handleStartCommand($chatId, $fullName);
                 break;
+            case '/stop':
+                $this->handleStopCommand($chatId, $fullName);
+                break;
             default:
-                $this->telegramService->sendMessage($chatId, 'Unknown command. Use /start to register.');
+                $this->telegramService->sendMessage($chatId, 'Unknown command. Use /start to register or /stop to unsubscribe.');
                 break;
         }
     }
@@ -76,6 +79,23 @@ class TelegramController extends Controller
                 'subscribed' => true,
             ]);
             $message = "Hello {$name}! You have been successfully registered for notifications.";
+        }
+
+        $this->telegramService->sendMessage($chatId, $message);
+    }
+
+    /**
+     * Handle /stop command
+     */
+    private function handleStopCommand(string $chatId, string $name): void
+    {
+        $user = User::findByTelegramId($chatId);
+
+        if ($user) {
+            $user->update(['subscribed' => false]);
+            $message = "You have been unsubscribed from notifications, {$user->name}. Send /start to resubscribe.";
+        } else {
+            $message = "You are not registered yet. Send /start to register first.";
         }
 
         $this->telegramService->sendMessage($chatId, $message);

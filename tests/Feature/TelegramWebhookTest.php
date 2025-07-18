@@ -85,4 +85,75 @@ class TelegramWebhookTest extends TestCase
             'subscribed' => true
         ]);
     }
+
+    public function test_stop_command_unsubscribes_existing_user()
+    {
+        // Create existing subscribed user
+        User::create([
+            'name' => 'Existing User',
+            'telegram_id' => '555666777',
+            'subscribed' => true
+        ]);
+
+        // Mock TelegramService
+        $telegramService = Mockery::mock(TelegramService::class);
+        $telegramService->shouldReceive('sendMessage')
+            ->once()
+            ->with('555666777', Mockery::type('string'))
+            ->andReturn(true);
+
+        $this->app->instance(TelegramService::class, $telegramService);
+
+        $webhookData = [
+            'message' => [
+                'chat' => ['id' => '555666777'],
+                'text' => '/stop',
+                'from' => [
+                    'first_name' => 'Existing',
+                    'last_name' => 'User'
+                ]
+            ]
+        ];
+
+        $response = $this->postJson('/api/telegram/webhook', $webhookData);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('users', [
+            'telegram_id' => '555666777',
+            'subscribed' => false
+        ]);
+    }
+
+    public function test_stop_command_handles_non_existing_user()
+    {
+        // Mock TelegramService
+        $telegramService = Mockery::mock(TelegramService::class);
+        $telegramService->shouldReceive('sendMessage')
+            ->once()
+            ->with('999888777', Mockery::type('string'))
+            ->andReturn(true);
+
+        $this->app->instance(TelegramService::class, $telegramService);
+
+        $webhookData = [
+            'message' => [
+                'chat' => ['id' => '999888777'],
+                'text' => '/stop',
+                'from' => [
+                    'first_name' => 'New',
+                    'last_name' => 'User'
+                ]
+            ]
+        ];
+
+        $response = $this->postJson('/api/telegram/webhook', $webhookData);
+
+        $response->assertStatus(200);
+
+        // User should not be created
+        $this->assertDatabaseMissing('users', [
+            'telegram_id' => '999888777'
+        ]);
+    }
 }

@@ -68,6 +68,50 @@
                 },
                 "description": "Fetch tasks from external API and process them"
             }
+        },
+        {
+            "name": "Telegram Webhook - Stop Command",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": {\n    \"chat\": {\n      \"id\": \"123456789\"\n    },\n    \"text\": \"/stop\",\n    \"from\": {\n      \"first_name\": \"Test\",\n      \"last_name\": \"User\"\n    }\n  }\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/telegram/webhook",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "telegram", "webhook"]
+                },
+                "description": "Simulate Telegram webhook for /stop command"
+            }
+        },
+        {
+            "name": "Test NotifyTasks Endpoint",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"action\": \"notify_tasks\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/v1/notify-tasks",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "notify-tasks"]
+                },
+                "description": "Trigger NotifyTasks functionality via API"
+            }
         }
     ]
 }
