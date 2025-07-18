@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: telegram-notifications-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/var/www
+      - ./storage:/var/www/storage
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - DB_HOST=mysql
+      - DB_DATABASE=telegram_notifications
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+      - REDIS_HOST=redis
+      - QUEUE_CONNECTION=redis
+    networks:
+      - telegram-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: telegram-notifications-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: telegram_notifications
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - telegram-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: telegram-notifications-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - telegram-network
+
+  queue:
+    build: .
+    container_name: telegram-notifications-queue
+    command: php artisan queue:work --verbose --tries=3 --timeout=90
+    volumes:
+      - .:/var/www
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - DB_HOST=mysql
+      - DB_DATABASE=telegram_notifications
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+      - REDIS_HOST=redis
+      - QUEUE_CONNECTION=redis
+    networks:
+      - telegram-network
+
+volumes:
+  mysql_data:
+
+networks:
+  telegram-network:
+    driver: bridge

@@ -1,0 +1,73 @@
+{
+    "info": {
+        "name": "Telegram Notifications Service",
+        "description": "API collection for Telegram notifications service",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Telegram Webhook",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"message\": {\n    \"chat\": {\n      \"id\": \"123456789\"\n    },\n    \"text\": \"/start\",\n    \"from\": {\n      \"first_name\": \"Test\",\n      \"last_name\": \"User\"\n    }\n  }\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/telegram/webhook",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "telegram", "webhook"]
+                },
+                "description": "Simulate Telegram webhook for /start command"
+            }
+        },
+        {
+            "name": "Send Tasks",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"tasks\": [\n    {\n      \"title\": \"Deploy new version\",\n      \"description\": \"Deploy version 2.1.0 to production server\",\n      \"priority\": \"high\",\n      \"due_date\": \"2024-01-15\"\n    },\n    {\n      \"title\": \"Database backup\",\n      \"description\": \"Create backup of production database\",\n      \"priority\": \"medium\",\n      \"due_date\": \"2024-01-10\"\n    }\n  ]\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/v1/tasks",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "tasks"]
+                },
+                "description": "Send tasks to notification service"
+            }
+        },
+        {
+            "name": "Fetch External Tasks",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/tasks/fetch",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "tasks", "fetch"]
+                },
+                "description": "Fetch tasks from external API and process them"
+            }
+        }
+    ]
+}
